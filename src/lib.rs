@@ -1,7 +1,7 @@
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::iter::{self, Iterator};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub fn var<K: AsRef<OsStr>>(key: K) -> Option<Var> {
     env::var_os(key).map(Var::new)
@@ -32,19 +32,19 @@ impl<'a> PathVar<'a> {
         path
     }
 
-    pub fn remove<K: AsRef<Path>>(mut self, path: &'a K) -> Self {
-        let path = path.as_ref();
-        self.entries = Some(Box::new(self.entries.unwrap().filter(move |p| p != path)));
+    pub fn remove(mut self, path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        self.entries = Some(Box::new(self.entries.unwrap().filter(move |p| p != &path)));
         self
     }
 
-    pub fn prefix<K: AsRef<Path>>(mut self, path: K) -> PathVar<'a> {
-        self.entries = Some(Box::new(iter::once(path.as_ref().to_path_buf()).chain(self.entries.unwrap())));
+    pub fn prefix(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
+        self.entries = Some(Box::new(iter::once(path.into()).chain(self.entries.unwrap())));
         self
     }
 
-    pub fn suffix<K: AsRef<Path>>(mut self, path: K) -> PathVar<'a> {
-        self.entries = Some(Box::new(self.entries.unwrap().chain(iter::once(path.as_ref().to_path_buf()))));
+    pub fn suffix(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
+        self.entries = Some(Box::new(self.entries.unwrap().chain(iter::once(path.into()))));
         self
     }
 
@@ -107,7 +107,7 @@ impl<'a> From<&'a str> for Var {
 #[cfg(all(test, unix))]
 mod tests {
     use std::ffi::OsString;
-    use super::{var, path, Var, PathVar};
+    use super::{path, Var};
 
     #[test]
     fn string_contents() {
@@ -135,21 +135,21 @@ mod tests {
     #[test]
     fn remove() {
         let var = Var::from("/bin:/usr/bin:/usr/local/bin");
-        assert_eq!(OsString::from(var.split().remove(&"/usr/bin").join().unwrap()),
+        assert_eq!(OsString::from(var.split().remove("/usr/bin").join().unwrap()),
             OsString::from("/bin:/usr/local/bin"));
     }
 
     #[test]
     fn prefix() {
         let var = Var::from("/usr/bin:/usr/local/bin");
-        assert_eq!(OsString::from(var.split().prefix(&"/bin").join().unwrap()),
+        assert_eq!(OsString::from(var.split().prefix("/bin").join().unwrap()),
             OsString::from("/bin:/usr/bin:/usr/local/bin"));
     }
 
     #[test]    
     fn suffix() {
         let var = Var::from("/bin:/usr/bin");
-        assert_eq!(OsString::from(var.split().suffix(&"/usr/local/bin").join().unwrap()),
+        assert_eq!(OsString::from(var.split().suffix("/usr/local/bin").join().unwrap()),
             OsString::from("/bin:/usr/bin:/usr/local/bin"));
     }
 }

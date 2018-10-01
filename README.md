@@ -5,10 +5,12 @@ Envoy is a small library providing more convenient abstractions for manipulating
 ## Example
 
 ```rust
-let path = envoy::path(); // get the `PATH`/`Path` variable
+let path = envoy::path();           // get the `PATH`/`Path` variable
+
 let updated = path.split()
-    .remove(&"/usr/local/bin")
-    .prefix(&"/home/dherman/.bin");
+    .remove("/usr/local/bin")       // remove /usr/local/bin
+    .prefix("/home/dherman/.bin");  // add /home/dherman/.bin to the front
+
 envoy::set_path(updated.join().unwrap());
 ```
 
