@@ -38,12 +38,24 @@ impl<'a> PathVar<'a> {
         self
     }
 
-    pub fn prefix(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
+    pub fn prefix<P: Into<PathBuf>, I: IntoIterator<Item = P> + 'a>(mut self, prefix: I) -> PathVar<'a> {
+        let prefix = prefix.into_iter().map(|p| p.into());
+        self.entries = Some(Box::new(prefix.chain(self.entries.unwrap())));
+        self
+    }
+
+    pub fn prefix_entry(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
         self.entries = Some(Box::new(iter::once(path.into()).chain(self.entries.unwrap())));
         self
     }
 
-    pub fn suffix(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
+    pub fn suffix<P: Into<PathBuf>, I: IntoIterator<Item = P> + 'a>(mut self, suffix: I) -> PathVar<'a> {
+        let suffix = suffix.into_iter().map(|p| p.into());
+        self.entries = Some(Box::new(self.entries.unwrap().chain(suffix)));
+        self
+    }
+
+    pub fn suffix_entry(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
         self.entries = Some(Box::new(self.entries.unwrap().chain(iter::once(path.into()))));
         self
     }
@@ -141,15 +153,31 @@ mod tests {
 
     #[test]
     fn prefix() {
+        let var = Var::from("/usr/bin");
+        let prefix = &["/home/dherman/.bin", "/bin"];
+        assert_eq!(OsString::from(var.split().prefix(prefix).join().unwrap()),
+            OsString::from("/home/dherman/.bin:/bin:/usr/bin"));
+    }
+
+    #[test]
+    fn prefix_entry() {
         let var = Var::from("/usr/bin:/usr/local/bin");
-        assert_eq!(OsString::from(var.split().prefix("/bin").join().unwrap()),
+        assert_eq!(OsString::from(var.split().prefix_entry("/bin").join().unwrap()),
             OsString::from("/bin:/usr/bin:/usr/local/bin"));
     }
 
-    #[test]    
+    #[test]
     fn suffix() {
+        let var = Var::from("/usr/bin");
+        let suffix = &["/home/dherman/.bin", "/bin"];
+        assert_eq!(OsString::from(var.split().suffix(suffix).join().unwrap()),
+            OsString::from("/usr/bin:/home/dherman/.bin:/bin"));
+    }
+
+    #[test]    
+    fn suffix_entry() {
         let var = Var::from("/bin:/usr/bin");
-        assert_eq!(OsString::from(var.split().suffix("/usr/local/bin").join().unwrap()),
+        assert_eq!(OsString::from(var.split().suffix_entry("/usr/local/bin").join().unwrap()),
             OsString::from("/bin:/usr/bin:/usr/local/bin"));
     }
 }
