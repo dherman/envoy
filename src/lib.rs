@@ -22,46 +22,44 @@ pub fn set_path<V: AsRef<OsStr>>(v: V) {
 }
 
 pub struct PathVar<'a> {
-    entries: Option<Box<dyn Iterator<Item = PathBuf> + 'a>>
+    entries: Box<dyn Iterator<Item = PathBuf> + 'a>
 }
 
 impl<'a> PathVar<'a> {
     fn new(original: &'a Var) -> Self {
-        let mut path = PathVar { entries: None };
-        path.entries = Some(Box::new(env::split_paths(original)));
-        path
+        PathVar { entries: Box::new(env::split_paths(original)) }
     }
 
     pub fn remove(mut self, path: impl Into<PathBuf>) -> Self {
         let path = path.into();
-        self.entries = Some(Box::new(self.entries.unwrap().filter(move |p| p != &path)));
+        self.entries = Box::new(self.entries.filter(move |p| p != &path));
         self
     }
 
     pub fn prefix<P: Into<PathBuf>, I: IntoIterator<Item = P> + 'a>(mut self, prefix: I) -> PathVar<'a> {
         let prefix = prefix.into_iter().map(|p| p.into());
-        self.entries = Some(Box::new(prefix.chain(self.entries.unwrap())));
+        self.entries = Box::new(prefix.chain(self.entries));
         self
     }
 
     pub fn prefix_entry(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
-        self.entries = Some(Box::new(iter::once(path.into()).chain(self.entries.unwrap())));
+        self.entries = Box::new(iter::once(path.into()).chain(self.entries));
         self
     }
 
     pub fn suffix<P: Into<PathBuf>, I: IntoIterator<Item = P> + 'a>(mut self, suffix: I) -> PathVar<'a> {
         let suffix = suffix.into_iter().map(|p| p.into());
-        self.entries = Some(Box::new(self.entries.unwrap().chain(suffix)));
+        self.entries = Box::new(self.entries.chain(suffix));
         self
     }
 
     pub fn suffix_entry(mut self, path: impl Into<PathBuf>) -> PathVar<'a> {
-        self.entries = Some(Box::new(self.entries.unwrap().chain(iter::once(path.into()))));
+        self.entries = Box::new(self.entries.chain(iter::once(path.into())));
         self
     }
 
     pub fn join(self) -> Result<OsString, env::JoinPathsError> {
-        env::join_paths(self.entries.unwrap())
+        env::join_paths(self.entries)
     }
 }
 
@@ -69,7 +67,7 @@ impl<'a> Iterator for PathVar<'a> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.entries.as_mut().unwrap().next()
+        self.entries.next()
     }
 }
 
@@ -174,7 +172,7 @@ mod tests {
             OsString::from("/usr/bin:/home/dherman/.bin:/bin"));
     }
 
-    #[test]    
+    #[test]
     fn suffix_entry() {
         let var = Var::from("/bin:/usr/bin");
         assert_eq!(OsString::from(var.split().suffix_entry("/usr/local/bin").join().unwrap()),
