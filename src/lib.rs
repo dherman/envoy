@@ -67,7 +67,7 @@ impl<'a> Iterator for PathVar<'a> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.entries.as_mut().next()
+        self.entries.next()
     }
 }
 
