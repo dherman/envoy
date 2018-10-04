@@ -1,6 +1,6 @@
 [package]
 name = "envoy"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Dave Herman <david.herman@gmail.com>"]
 description = "Conveniences for manipulating environment variables."
 readme = "README.md"
